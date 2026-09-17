@@ -79,7 +79,13 @@ firebase deploy --only hosting
 ```
 
 O `firebase.json` já aponta para o projeto `dashboardvinicius-3a4d9` e exclui
-`dados/` e `scripts/` do que vai para o ar.
+`dados/`, `scripts/` e o diretório `.git` do que vai para o ar.
+
+Os arquivos `.js`, `.css` e `.html` vão com `Cache-Control: no-cache`. Eles não
+têm hash no nome, então um `max-age` longo deixaria quem já visitou preso a uma
+versão antiga depois de cada deploy. Com `no-cache` o navegador revalida e
+recebe `304` pelo ETag quando nada mudou — o site inteiro tem poucos KB, então o
+custo é próximo de zero e ninguém fica vendo uma versão velha.
 
 ## Estrutura
 
