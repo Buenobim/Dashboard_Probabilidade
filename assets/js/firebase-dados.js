@@ -1,15 +1,16 @@
 /**
  * firebase-dados.js — origem dos dados do dashboard.
  *
- * Ordem de tentativa:
- *   1. Firestore (coleção "respostas") — quando o SDK carrega e a coleção tem
- *      documentos, esta é a fonte viva: publicar uma resposta nova no Firestore
- *      já aparece no dashboard no próximo carregamento, sem tocar no código.
- *   2. dataset.js — cópia local das 27 respostas exportadas do Google Forms.
- *      É o que faz o arquivo abrir com dois cliques, offline, sem servidor.
+ * A base local (dataset.js, exportada do Google Forms) é a fonte IMEDIATA: o
+ * painel pinta com ela no primeiro quadro, sem esperar rede. Em paralelo, tenta
+ * ler a coleção "respostas" do Firestore; se ela responder com documentos, o
+ * painel troca a base e redesenha.
  *
- * Nunca há tela em branco: qualquer falha do Firestore cai no local e o rodapé
- * mostra de onde os dados vieram.
+ * A ordem importa. Esperar o Firestore antes de desenhar deixaria o visitante
+ * olhando para uma tela vazia enquanto a rede decide — e, sem banco criado no
+ * projeto, isso só termina no timeout. Assim não existe tela em branco em
+ * nenhum cenário: sem rede, sem banco ou com o SDK bloqueado, o painel já está
+ * completo na tela e o rodapé diz qual origem está valendo.
  */
 (function (global) {
   'use strict';
@@ -57,24 +58,31 @@
     origem: 'local',
     registros: [],
 
-    /** Promessa com o conjunto de registros e a origem efetivamente usada. */
-    carregar: function () {
+    /** Base local, disponível de imediato e sem rede. */
+    baseLocal: function () {
       var local = (global.DATASET_LOCAL || []).map(normalizar);
-      var base = iniciarSdk();
+      Dados.origem = 'local';
+      Dados.registros = local;
+      return { registros: local, origem: 'local', detalhe: 'dados embutidos na página' };
+    },
 
-      if (!base) {
-        Dados.origem = 'local';
-        Dados.registros = local;
-        return Promise.resolve({ registros: local, origem: 'local', detalhe: 'SDK do Firebase não carregou' });
-      }
+    /**
+     * Tenta o Firestore em segundo plano. Resolve com o conjunto de registros
+     * quando a coleção responde com documentos, ou com null em qualquer outro
+     * caso (sem SDK, sem banco, sem permissão, coleção vazia, tempo esgotado).
+     * Nunca rejeita: quem chama só decide se troca a base ou não.
+     */
+    tentarFirestore: function () {
+      var base = iniciarSdk();
+      if (!base) return Promise.resolve(null);
 
       var tempoLimite = new Promise(function (_, rej) {
-        setTimeout(function () { rej(new Error('tempo esgotado')); }, 6000);
+        setTimeout(function () { rej(new Error('tempo esgotado')); }, 4000);
       });
 
       return Promise.race([base.collection(COLECAO).get(), tempoLimite])
         .then(function (snap) {
-          if (!snap || snap.empty) throw new Error('coleção vazia');
+          if (!snap || snap.empty) return null;
           var docs = [];
           snap.forEach(function (d) { docs.push(d.data()); });
           docs.sort(function (a, b) { return String(a.id).localeCompare(String(b.id)); });
@@ -84,9 +92,8 @@
           return { registros: regs, origem: 'firestore', detalhe: regs.length + ' documentos' };
         })
         .catch(function (e) {
-          Dados.origem = 'local';
-          Dados.registros = local;
-          return { registros: local, origem: 'local', detalhe: (e && e.message) || 'falha na leitura' };
+          console.info('[dados] Firestore não usado:', (e && e.message) || 'falha na leitura');
+          return null;
         });
     },
 

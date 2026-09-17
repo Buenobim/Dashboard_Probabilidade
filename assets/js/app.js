@@ -1096,7 +1096,7 @@
     ]));
 
     if (!noFirestore) {
-      r.appendChild(h('span', { text: 'Firestore não respondeu (' + info.detalhe + ') — o painel seguiu com a cópia local.' }));
+      r.appendChild(h('span', { text: 'Respostas embutidas na página — o painel não depende do banco para funcionar.' }));
     }
 
     r.appendChild(h('span', { html: 'Coleta: 17/08/2026 a 09/09/2026 · questionário de 13 questões fechadas · amostra não probabilística.' }));
@@ -1135,14 +1135,22 @@
       }
     });
 
-    document.getElementById('palco').classList.add('carregando');
+    // Pinta com a base local no primeiro quadro — nada de espera por rede.
+    var local = global.Dados.baseLocal();
+    estado.registros = local.registros;
+    estado.origem = local.origem;
+    montarRodape(local);
+    renderizar();
 
-    global.Dados.carregar().then(function (info) {
+    // Se o Firestore responder, troca a base e redesenha preservando a página
+    // e os filtros que a pessoa já tiver escolhido nesse meio-tempo.
+    global.Dados.tentarFirestore().then(function (info) {
+      if (!info) return;
       estado.registros = info.registros;
       estado.origem = info.origem;
-      document.getElementById('palco').classList.remove('carregando');
       montarRodape(info);
       renderizar();
+      avisar('Dados atualizados a partir do Firestore (' + info.registros.length + ' respostas).');
     });
   }
 
