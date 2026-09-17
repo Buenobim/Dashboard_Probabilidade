@@ -14,6 +14,19 @@
       "README.md"
     ],
     "cleanUrls": true,
+    "trailingSlash": false,
+    "redirects": [
+      { "source": "/azul/", "destination": "/azul", "type": 301 },
+      { "source": "/verde/", "destination": "/verde", "type": 301 },
+      { "source": "/amarelo/", "destination": "/amarelo", "type": 301 },
+      { "source": "/rosa/", "destination": "/rosa", "type": 301 }
+    ],
+    "rewrites": [
+      { "source": "/azul", "destination": "/index.html" },
+      { "source": "/verde", "destination": "/index.html" },
+      { "source": "/amarelo", "destination": "/index.html" },
+      { "source": "/rosa", "destination": "/index.html" }
+    ],
     "headers": [
       {
         "source": "**",

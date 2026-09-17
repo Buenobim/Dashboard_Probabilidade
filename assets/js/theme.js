@@ -1,16 +1,24 @@
 /**
- * theme.js — paletas e alternância de tema.
+ * theme.js — paleta do painel.
  *
- * São quatro temas (azul, vermelho, verde, amarelo) × dois modos (claro/escuro).
- * Cada tema traz uma rampa ordinal de 6 degraus, gerada em OKLCH com passo de
- * luminosidade constante e validada com o validador de paleta do guia de
- * visualização: luminosidade monotônica, ΔL ≥ 0,06 entre degraus e o degrau mais
- * próximo da superfície acima de 2:1 de contraste — nos dois modos.
+ * São quatro cores (azul, verde, amarelo, rosa), sempre em modo claro. A cor
+ * NÃO é escolhida pelo visitante: ela vem da URL, para que cada apresentador
+ * tenha um endereço próprio e o painel abra sempre na mesma identidade.
  *
- * A rampa do tema é usada em variáveis ORDINAIS (faixa etária, tempo de trajeto,
- * percepção de segurança...), onde a cor acompanha a ordem natural da escala.
- * Variáveis NOMINAIS usam a paleta categórica fixa abaixo, que não muda com o
- * tema — trocar a cor de uma categoria a cada tema confundiria a leitura.
+ *   /azul  /verde  /amarelo  /rosa        (links de apresentação)
+ *   ?cor=verde                            (funciona abrindo o arquivo local)
+ *
+ * Sem correspondência, cai em azul.
+ *
+ * Cada cor traz uma rampa ordinal de 6 degraus, gerada em OKLCH com passo de
+ * luminosidade constante e conferida no validador de paleta do guia de
+ * visualização: luminosidade monotônica, ΔL ≥ 0,06 entre degraus e o degrau
+ * mais claro acima de 2:1 de contraste sobre a superfície.
+ *
+ * A rampa é usada em variáveis ORDINAIS (faixa etária, tempo de trajeto,
+ * percepção de segurança...), onde a intensidade acompanha a ordem da escala.
+ * Variáveis NOMINAIS usam a paleta categórica fixa, que é a mesma nos quatro
+ * links — uma categoria não deve mudar de cor de um apresentador para o outro.
  */
 (function (global) {
   'use strict';
@@ -18,81 +26,64 @@
   var TEMAS = {
     azul: {
       nome: 'Azul',
-      amostra: '#2a78d6',
-      light: { rampa: ['#68aaff', '#4895f5', '#3380df', '#1c6cc9', '#0059b3', '#004893'], vivido: '#4895f5' },
-      dark: { rampa: ['#9dc7ff', '#75b1ff', '#4e9afb', '#3885e4', '#2070cd', '#005bb6'], vivido: '#9dc7ff' }
-    },
-    vermelho: {
-      nome: 'Vermelho',
-      amostra: '#dc4242',
-      light: { rampa: ['#ff7871', '#f35855', '#dc4242', '#c5292f', '#ae031b', '#900013'], vivido: '#f35855' },
-      dark: { rampa: ['#ffaaa3', '#ff857e', '#f95e5a', '#e14746', '#c82d32', '#b0081d'], vivido: '#ffaaa3' }
+      rampa: ['#68aaff', '#4895f5', '#3380df', '#1c6cc9', '#0059b3', '#004893'],
+      vivido: '#4895f5'
     },
     verde: {
       nome: 'Verde',
-      amostra: '#2c9a27',
-      light: { rampa: ['#5ac353', '#44ae3e', '#2c9a27', '#088607', '#007100', '#005c00'], vivido: '#44ae3e' },
-      dark: { rampa: ['#77e170', '#61ca5a', '#4ab444', '#319e2d', '#11890e', '#007300'], vivido: '#77e170' }
+      rampa: ['#5ac353', '#44ae3e', '#2c9a27', '#088607', '#007100', '#005c00'],
+      vivido: '#44ae3e'
     },
     amarelo: {
       nome: 'Amarelo',
-      amostra: '#f5b301',
-      light: { rampa: ['#df9700', '#c58500', '#ac7400', '#946300', '#7c5200', '#654200'], vivido: '#f5b301' },
-      dark: { rampa: ['#ffb333', '#e89d00', '#cd8a00', '#b27800', '#986500', '#7e5400'], vivido: '#ffc233' }
+      rampa: ['#df9700', '#c58500', '#ac7400', '#946300', '#7c5200', '#654200'],
+      vivido: '#f5b301'
+    },
+    rosa: {
+      nome: 'Rosa',
+      rampa: ['#ed7fa8', '#d76b95', '#c15881', '#ab456f', '#96315c', '#811c4b'],
+      vivido: '#d76b95'
     }
   };
 
   /**
    * Paleta categórica de 8 posições, atribuída sempre na mesma ordem e nunca
-   * reciclada. Validada para pares adjacentes nos dois modos (pior ΔE CVD 9,1
-   * claro / 8,4 escuro; pior ΔE visão normal 19,6 / 19,3).
+   * reciclada. Validada para pares adjacentes (pior ΔE sob daltonismo 9,1;
+   * pior ΔE em visão normal 19,6).
    */
-  var CATEGORICA = {
-    light: ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'],
-    dark: ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767']
-  };
+  var CATEGORICA = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
 
-  var estado = { tema: 'azul', modo: 'light' };
-  var ouvintes = [];
+  var estado = { tema: 'azul' };
 
-  function preferenciaDoSistema() {
-    return global.matchMedia && global.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
+  /** Lê a cor do caminho da URL e, se não houver, do parâmetro ?cor=. */
+  function temaDaUrl() {
+    var doCaminho = (location.pathname || '').toLowerCase().split('/').filter(Boolean).pop();
+    if (doCaminho && TEMAS[doCaminho]) return doCaminho;
 
-  function ler(chave, padrao) {
-    try { return localStorage.getItem(chave) || padrao; } catch (e) { return padrao; }
-  }
-  function gravar(chave, valor) {
-    try { localStorage.setItem(chave, valor); } catch (e) { /* modo privado: segue sem persistir */ }
+    var busca = (location.search || '').match(/[?&]cor=([a-z]+)/i);
+    if (busca && TEMAS[busca[1].toLowerCase()]) return busca[1].toLowerCase();
+
+    return 'azul';
   }
 
   function aplicar() {
-    var t = TEMAS[estado.tema] || TEMAS.azul;
-    var m = t[estado.modo];
+    var t = TEMAS[estado.tema];
     var raiz = document.documentElement;
 
     raiz.setAttribute('data-tema', estado.tema);
-    raiz.setAttribute('data-modo', estado.modo);
 
-    m.rampa.forEach(function (hex, i) {
+    t.rampa.forEach(function (hex, i) {
       raiz.style.setProperty('--rampa-' + i, hex);
     });
-    // Tokens de interface derivados da rampa: preenchimento de marca, fundo de
-    // botão (texto em contraste garantido) e cor de texto sobre a superfície.
-    if (estado.modo === 'light') {
-      raiz.style.setProperty('--acento-marca', m.rampa[2]);
-      raiz.style.setProperty('--acento-solido', m.rampa[3]);
-      raiz.style.setProperty('--acento-solido-texto', '#ffffff');
-      raiz.style.setProperty('--acento-texto', m.rampa[4]);
-    } else {
-      raiz.style.setProperty('--acento-marca', m.rampa[2]);
-      raiz.style.setProperty('--acento-solido', m.rampa[2]);
-      raiz.style.setProperty('--acento-solido-texto', '#0c0d0f');
-      raiz.style.setProperty('--acento-texto', m.rampa[1]);
-    }
-    raiz.style.setProperty('--acento-vivo', m.vivido);
 
-    ouvintes.forEach(function (fn) { fn(estado); });
+    // Tokens de interface derivados da rampa. Os degraus foram escolhidos pelo
+    // contraste medido sobre a superfície branca: [2] ≥ 3,6:1 para marcas de
+    // dados, [3] ≥ 4,7:1 com texto branco por cima, [4] ≥ 6,2:1 para texto.
+    raiz.style.setProperty('--acento-marca', t.rampa[2]);
+    raiz.style.setProperty('--acento-solido', t.rampa[3]);
+    raiz.style.setProperty('--acento-solido-texto', '#ffffff');
+    raiz.style.setProperty('--acento-texto', t.rampa[4]);
+    raiz.style.setProperty('--acento-vivo', t.vivido);
   }
 
   var Tema = {
@@ -100,29 +91,17 @@
     estado: estado,
 
     iniciar: function () {
-      estado.tema = ler('dash.tema', 'azul');
-      if (!TEMAS[estado.tema]) estado.tema = 'azul';
-      estado.modo = ler('dash.modo', preferenciaDoSistema());
-      if (estado.modo !== 'dark') estado.modo = 'light';
+      estado.tema = temaDaUrl();
       aplicar();
     },
 
-    definirTema: function (nome) {
-      if (!TEMAS[nome]) return;
-      estado.tema = nome;
-      gravar('dash.tema', nome);
-      aplicar();
+    nome: function () {
+      return TEMAS[estado.tema].nome;
     },
 
-    alternarModo: function () {
-      estado.modo = estado.modo === 'dark' ? 'light' : 'dark';
-      gravar('dash.modo', estado.modo);
-      aplicar();
-    },
-
-    /** Rampa ordinal do tema no modo atual. */
+    /** Rampa ordinal completa. */
     rampa: function () {
-      return TEMAS[estado.tema][estado.modo].rampa.slice();
+      return TEMAS[estado.tema].rampa.slice();
     },
 
     /**
@@ -143,16 +122,13 @@
 
     /** n cores categóricas, sempre na mesma ordem de posições. */
     categorica: function (n) {
-      var p = CATEGORICA[estado.modo];
-      return p.slice(0, Math.min(n, p.length));
+      return CATEGORICA.slice(0, Math.min(n, CATEGORICA.length));
     },
 
     /** Cor única para série simples (uma cor por gráfico, não por barra). */
     marca: function () {
-      return TEMAS[estado.tema][estado.modo].rampa[2];
-    },
-
-    aoMudar: function (fn) { ouvintes.push(fn); }
+      return TEMAS[estado.tema].rampa[2];
+    }
   };
 
   global.Tema = Tema;

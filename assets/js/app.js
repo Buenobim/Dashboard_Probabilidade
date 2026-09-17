@@ -55,8 +55,6 @@
     imagem: 'M4 5h16v14H4zM4 15l4.5-4.5 4 4 3-3L20 15M9 9.5h.01',
     imprimir: 'M7 8V4h10v4M7 16H5v-6h14v6h-2M7 14h10v6H7z',
     menu: 'M4 7h16M4 12h16M4 17h16',
-    sol: 'M12 7.5A4.5 4.5 0 1012 16.5 4.5 4.5 0 0012 7.5zM12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
-    lua: 'M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z',
     nuvem: 'M7 18h9a4 4 0 000-8 5.5 5.5 0 00-10.6 1.5A3.5 3.5 0 007 18z'
   };
 
@@ -243,13 +241,19 @@
       h('div', { class: 'kpi-valor', html: opts.valor + (opts.unidade ? '<span class="kpi-unidade">' + opts.unidade + '</span>' : '') }),
       h('p', { class: 'kpi-apoio', html: opts.apoio || '' })
     ]);
-    var faixa = h('div');
-    caixa.appendChild(faixa);
-    var sec = h('section', { class: 'cartao c3' }, [caixa]);
+    // Barra de proporção em CSS: a largura percentual é resolvida pelo layout,
+    // sem medição em JavaScript e sem chance de estourar a borda do cartão.
     if (opts.pct != null) {
-      requestAnimationFrame(function () { G.faixa(faixa, opts.pct, { descricao: opts.rotulo }); });
+      var proporcao = Math.max(0, Math.min(100, opts.pct));
+      caixa.appendChild(h('div', {
+        class: 'kpi-faixa', role: 'img',
+        'aria-label': opts.rotulo + ': ' + S.fmtPct(proporcao, 1)
+      }, [
+        h('span', { class: 'kpi-faixa-valor', style: 'width:' + proporcao.toFixed(2) + '%' })
+      ]));
     }
-    return sec;
+
+    return h('section', { class: 'cartao c3' }, [caixa]);
   }
 
   // --------------------------------------------------------------- exportação
@@ -1034,6 +1038,10 @@
       palco.appendChild(PAGINAS[estado.pagina](recorte));
     }
 
+    // Só agora os cartões estão no documento e têm largura. Este é o momento —
+    // e o único momento garantido — de desenhar os gráficos na medida certa.
+    G.redesenharTudo();
+
     renderizando = false;
   }
 
@@ -1043,29 +1051,9 @@
     var acoes = document.getElementById('acoes-topo');
     acoes.innerHTML = '';
 
-    var temas = h('div', { class: 'temas', role: 'group', 'aria-label': 'Cor do painel' });
-    Object.keys(global.Tema.temas).forEach(function (nome) {
-      var t = global.Tema.temas[nome];
-      temas.appendChild(h('button', {
-        class: 'tema-bolha', type: 'button', title: 'Tema ' + t.nome,
-        'aria-label': 'Tema ' + t.nome,
-        'aria-pressed': global.Tema.estado.tema === nome ? 'true' : 'false',
-        style: '--amostra:' + t.amostra,
-        onclick: function () { global.Tema.definirTema(nome); montarTopo(); renderizar(); }
-      }));
-    });
-    acoes.appendChild(temas);
-
-    var escuro = global.Tema.estado.modo === 'dark';
-    var btnModo = h('button', {
-      class: 'btn btn-sutil', type: 'button',
-      title: escuro ? 'Mudar para o modo claro' : 'Mudar para o modo escuro',
-      'aria-label': escuro ? 'Mudar para o modo claro' : 'Mudar para o modo escuro',
-      onclick: function () { global.Tema.alternarModo(); montarTopo(); renderizar(); }
-    });
-    btnModo.appendChild(icone(escuro ? 'sol' : 'lua'));
-    acoes.appendChild(btnModo);
-
+    // Sem seletor de cor e sem alternância de modo: a cor vem da URL do link de
+    // cada apresentador e o painel é sempre claro, para que o que está no
+    // projetor seja exatamente o que foi combinado.
     var btnBase = h('button', {
       class: 'btn', type: 'button',
       onclick: function () {
@@ -1101,21 +1089,14 @@
 
     r.appendChild(h('span', { html: 'Coleta: 17/08/2026 a 09/09/2026 · questionário de 13 questões fechadas · amostra não probabilística.' }));
 
-    var btn = h('button', {
-      class: 'btn btn-sutil', type: 'button',
-      title: 'Envia as respostas da base local para a coleção "' + global.Dados.colecao + '" no Firestore',
-      onclick: function () {
-        var ok = confirm('Enviar as ' + (global.DATASET_LOCAL || []).length + ' respostas locais para a coleção "' +
-          global.Dados.colecao + '" do projeto ' + global.Dados.projeto + '?\n\n' +
-          'Documentos com o mesmo id serão sobrescritos.');
-        if (!ok) return;
-        global.Dados.publicarBaseLocal()
-          .then(function (n) { avisar(n + ' respostas publicadas no Firestore. Recarregue para ler de lá.'); })
-          .catch(function (e) { avisar('Falha ao publicar: ' + e.message, true); });
-      }
-    }, [document.createTextNode('Publicar base no Firestore')]);
-    btn.insertBefore(icone('nuvem'), btn.firstChild);
-    r.appendChild(btn);
+    // Identifica o link aberto — serve para o apresentador conferir, antes de
+    // projetar, que está na versão combinada com o grupo.
+    r.appendChild(h('span', { class: 'selo-versao', text: 'Versão ' + global.Tema.nome() }));
+
+    // O botão de publicar no Firestore saiu daqui: estes são links de
+    // apresentação, e uma ação de escrita no banco não tem o que fazer no
+    // rodapé de quem vai projetar. A carga continua disponível pelo
+    // scripts/seed-firestore.mjs, documentado no README.
   }
 
   // -------------------------------------------------------------------- start

@@ -127,9 +127,16 @@
 
   // --------------------------------------------------------------- moldura SVG
 
+  /**
+   * O SVG é desenhado na largura REAL do container, medida no momento do
+   * desenho. Não existe largura de reserva: um valor fixo aqui produziria um
+   * gráfico maior que o cartão em telas mais estreitas — a marca vazaria para
+   * fora do cartão. Quem garante que a medição só acontece com o elemento já
+   * no documento e com layout calculado é o observador abaixo.
+   */
   function moldura(container, altura, descricao) {
     container.innerHTML = '';
-    var w = Math.max(240, container.clientWidth || 480);
+    var w = Math.floor(container.clientWidth);
     var svg = el('svg', {
       width: w, height: altura, viewBox: '0 0 ' + w + ' ' + altura,
       role: 'img', 'aria-label': descricao || ''
@@ -138,25 +145,70 @@
     return { svg: svg, w: w, h: altura };
   }
 
+  /**
+   * ResizeObserver para as mudanças de largura POSTERIORES — janela
+   * redimensionada, barra lateral aberta, cartão reflowado.
+   *
+   * O primeiro desenho não passa por aqui. O observador só entrega o callback
+   * quando o documento está sendo renderizado; numa aba em segundo plano ou
+   * numa janela oculta a entrega fica suspensa, e o painel abriria sem
+   * gráfico nenhum. Por isso a primeira pintura é disparada explicitamente por
+   * `redesenharTudo()`, logo depois que o conteúdo entra no documento.
+   */
+  var observador = global.ResizeObserver ? new global.ResizeObserver(function (entradas) {
+    entradas.forEach(function (entrada) {
+      var reg = registrados.find(function (r) { return r.el === entrada.target; });
+      if (!reg) return;
+      var w = Math.floor(entrada.contentRect.width);
+      // Largura 0 = ainda sem layout. Largura repetida = redesenho supérfluo,
+      // e redesenhar aqui dentro realimentaria o próprio observador.
+      if (w <= 0 || w === reg.largura) return;
+      reg.largura = w;
+      reg.desenhar();
+    });
+  }) : null;
+
   function registrar(container, desenhar) {
     var achado = registrados.find(function (r) { return r.el === container; });
-    if (achado) achado.desenhar = desenhar;
-    else registrados.push({ el: container, desenhar: desenhar });
-    desenhar();
+    if (achado) {
+      achado.desenhar = desenhar;
+      achado.largura = 0;
+    } else {
+      registrados.push({ el: container, desenhar: desenhar, largura: 0 });
+    }
+
+    if (observador) observador.observe(container);
+
+    // Só desenha aqui se o elemento já estiver no documento e medido. Quando
+    // vem de um DocumentFragment isso é falso, e quem desenha é a chamada a
+    // redesenharTudo() feita após a inserção.
+    var reg = registrados[registrados.length - 1];
+    if (container.clientWidth > 0) {
+      reg.largura = Math.floor(container.clientWidth);
+      desenhar();
+    }
   }
 
+  /**
+   * Passa por todos os gráficos registrados e desenha os que ainda não foram
+   * desenhados na largura atual. É o gatilho da primeira pintura: chamado logo
+   * depois que o conteúdo entra no documento, quando as larguras finalmente
+   * existem. Descarta o registro de elementos que saíram da página.
+   */
   function redesenharTudo() {
-    registrados = registrados.filter(function (r) { return document.body.contains(r.el); });
+    registrados = registrados.filter(function (r) {
+      if (document.body.contains(r.el)) return true;
+      if (observador) observador.unobserve(r.el);
+      return false;
+    });
     registrados.forEach(function (r) {
-      if (r.el.offsetParent !== null || r.el.clientWidth > 0) r.desenhar();
+      var w = Math.floor(r.el.clientWidth);
+      if (w > 0 && w !== r.largura) {
+        r.largura = w;
+        r.desenhar();
+      }
     });
   }
-
-  var timerResize;
-  global.addEventListener('resize', function () {
-    clearTimeout(timerResize);
-    timerResize = setTimeout(redesenharTudo, 120);
-  });
 
   // ================================================================== GRÁFICOS
 
@@ -509,16 +561,10 @@
     });
   }
 
-  /** Mini barra de proporção usada nos cartões de indicador. */
-  function faixa(container, pct, opts) {
-    opts = opts || {};
-    registrar(container, function () {
-      var m = moldura(container, 6, opts.descricao);
-      var raio = 3;
-      el('rect', { x: 0, y: 0, width: m.w, height: 6, rx: raio, fill: css('--grade') }, m.svg);
-      el('rect', { x: 0, y: 0, width: Math.max(raio * 2, (pct / 100) * m.w), height: 6, rx: raio, fill: opts.cor || css('--acento-marca') }, m.svg);
-    });
-  }
+  // A mini barra dos cartões de indicador saiu daqui e virou CSS puro. Ela é um
+  // retângulo com largura percentual: em SVG dependia de medir o container, e
+  // era justamente ela que vazava para fora do cartão quando a medida falhava.
+  // Em CSS, `width: X%` é resolvido pelo próprio layout e não tem como vazar.
 
   global.Graficos = {
     barras: barras,
@@ -526,7 +572,6 @@
     rosca: rosca,
     empilhado100: empilhado100,
     agrupado: agrupado,
-    faixa: faixa,
     redesenharTudo: redesenharTudo,
     esconderDica: esconderDica
   };

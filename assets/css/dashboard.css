@@ -33,30 +33,24 @@
   color-scheme: light;
 }
 
-:root[data-modo='dark'] {
-  --plano: #0e0f11;
-  --superficie: #16171a;
-  --superficie-2: #1c1e22;
-  --superficie-3: #212428;
-  --borda: rgba(255, 255, 255, 0.10);
-  --borda-forte: rgba(255, 255, 255, 0.18);
-  --grade: #2a2c31;
-  --eixo: #3b3e44;
-  --ink-1: #f3f4f6;
-  --ink-2: #b2b6be;
-  --ink-3: #82858d;
-  --sombra: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --sombra-alta: 0 10px 34px rgba(0, 0, 0, 0.62), 0 2px 8px rgba(0, 0, 0, 0.4);
-  --atencao: #e2a33c;
-  --critico: #ef6a5f;
-  color-scheme: dark;
-}
+/* O painel é sempre claro. Não há modo escuro nem alternância: os quatro links
+   de apresentação devem projetar exatamente a mesma coisa, e a preferência de
+   tema do sistema operacional de quem abrir não pode mudar isso. Por esse
+   motivo `color-scheme` fica fixo em `light` acima. */
 
 * { box-sizing: border-box; }
 
 html, body {
   margin: 0;
   height: 100%;
+}
+
+html {
+  /* Reserva a calha da barra de rolagem sempre. Sem isso, uma página mais alta
+     faz a barra aparecer DEPOIS que os gráficos já foram medidos e desenhados,
+     e todos ficam ~15px mais largos que o cartão. Também elimina o solavanco
+     lateral ao navegar entre uma página curta e uma longa. */
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -350,30 +344,6 @@ select.campo, input.campo {
 
 select.campo:hover { border-color: var(--borda-forte); }
 
-/* ------------------------------------------------------------ seletor de tema */
-
-.temas { display: flex; align-items: center; gap: 5px; padding: 3px; border: 1px solid var(--borda); border-radius: 20px; }
-
-.tema-bolha {
-  width: 17px; height: 17px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  padding: 0;
-  cursor: pointer;
-  background-clip: padding-box;
-  position: relative;
-}
-
-.tema-bolha::after {
-  content: '';
-  position: absolute;
-  inset: 2px;
-  border-radius: 50%;
-  background: var(--amostra);
-}
-
-.tema-bolha[aria-pressed='true'] { border-color: var(--ink-2); }
-
 /* ------------------------------------------------------------------- páginas */
 
 .pagina { padding: 20px 24px 56px; display: none; }
@@ -452,7 +422,15 @@ select.campo:hover { border-color: var(--borda-forte); }
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* Rede de segurança: nenhum conteúdo desenhado atravessa a borda do cartão,
+     aconteça o que acontecer com a medição. Também faz o raio da borda
+     recortar os filhos. As dicas de hover são position:fixed no body, então
+     não são afetadas. */
+  overflow: hidden;
 }
+
+/* Um SVG nunca fica mais largo que o cartão que o abriga. */
+.cartao-corpo svg { max-width: 100%; }
 
 .cartao-topo {
   padding: 13px 16px 10px;
@@ -525,8 +503,28 @@ select.campo:hover { border-color: var(--borda-forte); }
 }
 
 .kpi-unidade { font-size: 15px; font-weight: 500; color: var(--ink-2); margin-left: 1px; }
-.kpi-apoio { font-size: 11.5px; color: var(--ink-2); margin: 7px 0 9px; min-height: 17px; }
+.kpi-apoio { font-size: 11.5px; color: var(--ink-2); margin: 7px 0 10px; min-height: 17px; }
 .kpi-apoio b { font-weight: 600; color: var(--ink-1); }
+
+/* Barra de proporção do indicador. Largura percentual resolvida pelo layout:
+   nada é medido em JavaScript, então ela acompanha o cartão em qualquer
+   largura de tela e não tem como ultrapassar a borda. */
+.kpi-faixa {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--grade);
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
+.kpi-faixa-valor {
+  display: block;
+  height: 100%;
+  min-width: 6px;
+  border-radius: 3px;
+  background: var(--acento-marca);
+}
 
 /* --------------------------------------------------------------------- tabelas */
 
@@ -720,6 +718,26 @@ table.dados td.bar-cel { width: 82px; padding-right: 0; }
 }
 
 .rodape-app code { font-family: var(--mono); font-size: 10.5px; }
+
+.selo-versao {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--acento-texto);
+}
+
+.selo-versao::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--acento-marca);
+}
 
 /* ---------------------------------------------------------- construtor cruzam. */
 

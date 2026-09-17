@@ -19,11 +19,34 @@ Site estático, sem build e sem dependências de runtime: abre com dois cliques 
   100% empilhadas ou agrupadas.
 - **Segmentadores** (gênero, faixa etária, habilitação, veículo, transporte,
   percepção de segurança) e **filtro cruzado por clique** em qualquer barra.
-- **4 temas de cor** (azul, vermelho, verde, amarelo) × modo claro/escuro.
 - **Exportação**: CSV de qualquer tabela, PNG de qualquer gráfico, base completa
   do recorte em CSV, e impressão/PDF com layout próprio.
 - **Página "Relatório"** com introdução, objetivos, método, análise e conclusão,
   com os percentuais atualizados pelo recorte ativo — base para o texto no Word.
+
+## Os quatro links de apresentação
+
+Um endereço por apresentador. O conteúdo é idêntico nos quatro; muda apenas a
+cor, e o rodapé identifica qual versão está aberta.
+
+| Apresentador | Link |
+|---|---|
+| Azul | https://dashboardvinicius-3a4d9.web.app/azul |
+| Verde | https://dashboardvinicius-3a4d9.web.app/verde |
+| Amarelo | https://dashboardvinicius-3a4d9.web.app/amarelo |
+| Rosa | https://dashboardvinicius-3a4d9.web.app/rosa |
+
+A raiz (`/`) abre na versão azul.
+
+A cor vem do caminho da URL, lido em `theme.js`; as rotas são `rewrites` no
+`firebase.json` que apontam todas para o mesmo `index.html`. **Um único deploy
+atualiza os quatro links** — não existe cópia do painel por cor.
+
+Abrindo o arquivo localmente, use `index.html?cor=verde`.
+
+O painel é **sempre claro** e **não tem seletor de cor**: os quatro links devem
+projetar exatamente a mesma coisa, e a preferência de tema do sistema
+operacional de quem abrir não pode interferir.
 
 ## Rodando
 
@@ -36,11 +59,16 @@ diretamente (nesse caso o Firestore não responde e o painel usa a base local).
 
 ## Origem dos dados
 
-O painel tenta ler a coleção `respostas` do Firestore
-(`dashboardvinicius-3a4d9`). Se o Firestore não responder em 6 segundos, estiver
-vazio ou bloqueado, ele cai para `assets/js/dataset.js` — a cópia local das
-respostas exportadas do Google Forms. O rodapé sempre mostra qual origem está em
-uso, então não existe tela em branco.
+A fonte imediata é `assets/js/dataset.js`, a cópia local das respostas
+exportadas do Google Forms: o painel pinta com ela no primeiro quadro, sem
+esperar rede. **Em paralelo**, tenta ler a coleção `respostas` do Firestore
+(`dashboardvinicius-3a4d9`); se ela responder com documentos em até 4 segundos,
+o painel troca a base e redesenha.
+
+A ordem importa. Esperar o Firestore antes de desenhar deixaria o visitante
+olhando para uma tela vazia enquanto a rede decide — e, sem banco criado no
+projeto, isso só terminaria no timeout. Assim não existe tela em branco em
+cenário nenhum, e o rodapé sempre mostra qual origem está valendo.
 
 ### Carregar a base no Firestore
 
@@ -56,9 +84,8 @@ O script pede `service-account.json` na raiz (Console → Configurações do pro
 Contas de serviço → Gerar nova chave privada). Esse arquivo está no `.gitignore`;
 **não versione a chave.**
 
-Alternativa sem Node: o botão *Publicar base no Firestore* no rodapé do painel faz
-a mesma carga pelo navegador — mas exige afrouxar temporariamente a regra de
-escrita em `firestore.rules`.
+Não há botão de carga na interface: estes são links de apresentação, e uma ação
+de escrita no banco não tem o que fazer no rodapé de quem vai projetar.
 
 ### Regras de segurança
 
@@ -95,7 +122,7 @@ assets/css/dashboard.css       tokens de cor, layout, tabelas, impressão
 assets/js/schema.js            dicionário das 13 questões (rótulos, ordem, escala)
 assets/js/dataset.js           27 respostas — gerado a partir da planilha
 assets/js/stats.js             frequências, cruzamentos, qui-quadrado, V de Cramér
-assets/js/theme.js             4 temas × 2 modos, rampas validadas
+assets/js/theme.js             4 cores (via URL), rampas validadas, só modo claro
 assets/js/charts.js            gráficos em SVG (barras, colunas, rosca, empilhado)
 assets/js/firebase-dados.js    leitura do Firestore com queda para a base local
 assets/js/app.js               estado, filtros, páginas, exportações
@@ -105,15 +132,36 @@ dados/                         planilha original e enunciado do professor
 
 ## Notas sobre as escolhas de cor
 
-As rampas dos quatro temas foram geradas em OKLCH com passo de luminosidade
+As rampas das quatro cores foram geradas em OKLCH com passo de luminosidade
 constante e conferidas com o validador de paleta do guia de visualização de
-dados: luminosidade monotônica, ΔL ≥ 0,06 entre degraus e o degrau mais próximo
-da superfície acima de 2:1 de contraste, nos modos claro e escuro.
+dados: luminosidade monotônica, ΔL ≥ 0,06 entre degraus e o degrau mais claro
+acima de 2:1 de contraste sobre a superfície. Os degraus usados na interface
+foram escolhidos por contraste medido: o degrau 2 (≥ 3,6:1) para marcas de
+dados, o 3 (≥ 4,7:1) para botões com texto branco, o 4 (≥ 6,2:1) para texto.
 
-A rampa do tema é usada apenas em variáveis **ordinais**, onde a intensidade da
-cor acompanha a ordem da escala. Variáveis **nominais** usam uma paleta
-categórica fixa de 8 posições, que não muda com o tema — o objetivo é que uma
-categoria não troque de cor quando o usuário troca o tema.
+A rampa é usada apenas em variáveis **ordinais**, onde a intensidade da cor
+acompanha a ordem da escala. Variáveis **nominais** usam uma paleta categórica
+fixa de 8 posições, igual nos quatro links — uma categoria não deve trocar de
+cor de um apresentador para o outro.
+
+## Nota sobre a medição dos gráficos
+
+Os SVGs são desenhados na largura real do container, medida no momento do
+desenho, e **nunca** numa largura de reserva. Isso não é detalhe: os cartões são
+montados dentro de um `DocumentFragment`, onde `clientWidth` é `0`, e um valor
+fixo de reserva produzia gráficos maiores que o cartão em telas mais estreitas —
+a marca vazava para fora da borda.
+
+A primeira pintura é disparada por `Graficos.redesenharTudo()`, chamado em
+`renderizar()` logo depois que o conteúdo entra no documento. O `ResizeObserver`
+cuida apenas das mudanças posteriores, porque ele não entrega callback enquanto
+o documento não está sendo renderizado (aba em segundo plano, janela oculta) — e
+o painel abriria sem gráfico nenhum se dependesse dele para desenhar.
+
+Duas redes de segurança acompanham: `scrollbar-gutter: stable` no `html`, para
+que a barra de rolagem não encolha o container depois da medição, e
+`overflow: hidden` no cartão, para que nada atravesse a borda em hipótese
+alguma.
 
 ## Sobre a amostra
 
