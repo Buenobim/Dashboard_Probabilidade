@@ -10,7 +10,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/css/dashboard.css">
+<!-- O ?v= é a versão do conjunto de arquivos. Sem build não há hash no nome, e
+     cada script é cacheado por conta própria: sem esse carimbo o navegador pode
+     acabar com um arquivo novo e outro antigo depois de um deploy. Ao alterar
+     qualquer .js ou .css, incremente este número nos links abaixo. -->
+<link rel="stylesheet" href="assets/css/dashboard.css?v=2">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231c6cc9'/%3E%3Cpath d='M7 23V13m6 10V8m6 15v-7m6 7V11' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
 </head>
 
@@ -72,12 +76,12 @@
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
 
-<script src="assets/js/schema.js"></script>
-<script src="assets/js/dataset.js"></script>
-<script src="assets/js/stats.js"></script>
-<script src="assets/js/theme.js"></script>
-<script src="assets/js/charts.js"></script>
-<script src="assets/js/firebase-dados.js"></script>
-<script src="assets/js/app.js"></script>
+<script src="assets/js/schema.js?v=2"></script>
+<script src="assets/js/dataset.js?v=2"></script>
+<script src="assets/js/stats.js?v=2"></script>
+<script src="assets/js/theme.js?v=2"></script>
+<script src="assets/js/charts.js?v=2"></script>
+<script src="assets/js/firebase-dados.js?v=2"></script>
+<script src="assets/js/app.js?v=2"></script>
 </body>
 </html>

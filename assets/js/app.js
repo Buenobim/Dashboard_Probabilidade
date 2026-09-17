@@ -1136,7 +1136,11 @@
     });
 
     // Pinta com a base local no primeiro quadro — nada de espera por rede.
-    var local = global.Dados.baseLocal();
+    // O guarda cobre o caso de um deploy pegar o navegador com scripts de
+    // versões diferentes em cache: mesmo assim a tela sai completa.
+    var local = (global.Dados && typeof global.Dados.baseLocal === 'function')
+      ? global.Dados.baseLocal()
+      : { registros: global.DATASET_LOCAL || [], origem: 'local', detalhe: 'base embutida' };
     estado.registros = local.registros;
     estado.origem = local.origem;
     montarRodape(local);
@@ -1144,6 +1148,7 @@
 
     // Se o Firestore responder, troca a base e redesenha preservando a página
     // e os filtros que a pessoa já tiver escolhido nesse meio-tempo.
+    if (!global.Dados || typeof global.Dados.tentarFirestore !== 'function') return;
     global.Dados.tentarFirestore().then(function (info) {
       if (!info) return;
       estado.registros = info.registros;
