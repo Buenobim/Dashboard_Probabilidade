@@ -31,10 +31,10 @@ cor, e o rodapé identifica qual versão está aberta.
 
 | Apresentador | Link |
 |---|---|
-| Azul | https://dashboardvinicius-3a4d9.web.app/azul |
-| Verde | https://dashboardvinicius-3a4d9.web.app/verde |
-| Amarelo | https://dashboardvinicius-3a4d9.web.app/amarelo |
-| Rosa | https://dashboardvinicius-3a4d9.web.app/rosa |
+| Azul | https://pesquisa-mobilidade-urbana-2026.web.app/azul |
+| Verde | https://pesquisa-mobilidade-urbana-2026.web.app/verde |
+| Amarelo | https://pesquisa-mobilidade-urbana-2026.web.app/amarelo |
+| Rosa | https://pesquisa-mobilidade-urbana-2026.web.app/rosa |
 
 A raiz (`/`) abre na versão azul.
 
@@ -105,8 +105,24 @@ firebase login
 firebase deploy --only hosting
 ```
 
-O `firebase.json` já aponta para o projeto `dashboardvinicius-3a4d9` e exclui
-`dados/`, `scripts/` e o diretório `.git` do que vai para o ar.
+O `firebase.json` exclui `dados/`, `scripts/` e o diretório `.git` do que vai
+para o ar.
+
+### Dois sites, um deploy
+
+O ID do projeto no Firebase (`dashboardvinicius-3a4d9`) não pode ser alterado
+depois de criado, mas o endereço de um *site* de Hosting é independente dele.
+Por isso o projeto tem dois sites, e `firebase deploy --only hosting` publica
+nos dois de uma vez:
+
+| Site | Papel |
+|---|---|
+| `pesquisa-mobilidade-urbana-2026` | endereço oficial, usado nos links de apresentação |
+| `dashboardvinicius-3a4d9` | endereço original, mantido apenas para links já compartilhados |
+
+As duas configurações em `firebase.json` são propositalmente **idênticas** — o
+endereço antigo não pode virar uma versão parada no tempo. Ao mexer em uma,
+replique na outra.
 
 Os arquivos `.js`, `.css` e `.html` vão com `Cache-Control: no-cache`. Eles não
 têm hash no nome, então um `max-age` longo deixaria quem já visitou preso a uma
