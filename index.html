@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="azul" data-modo="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mobilidade Urbana e Segurança no Trânsito — Painel de resultados</title>
+<meta name="description" content="Painel interativo dos resultados da pesquisa sobre mobilidade urbana e segurança no trânsito. UNIBRASIL, Estatística, 1º bimestre.">
+<meta name="color-scheme" content="light dark">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231c6cc9'/%3E%3Cpath d='M7 23V13m6 10V8m6 15v-7m6 7V11' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+
+<body>
+<div class="app">
+
+  <!-- ------------------------------------------------------------- lateral -->
+  <aside class="rail" id="rail">
+    <div class="marca">
+      <div class="marca-linha">
+        <div class="marca-selo" aria-hidden="true">MU</div>
+        <div>
+          <div class="marca-nome">Mobilidade Urbana<br>e Segurança no Trânsito</div>
+          <div class="marca-sub">UNIBRASIL · Estatística · 1º bim.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rail-rolagem">
+      <nav id="nav" aria-label="Seções do painel"></nav>
+
+      <div class="grupo-rail">
+        <div class="rotulo-grupo">
+          <span>Segmentadores</span>
+        </div>
+        <div id="slicers"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ------------------------------------------------------------ conteúdo -->
+  <div class="conteudo">
+
+    <header class="barra-topo">
+      <button class="btn btn-sutil rail-toggle" id="rail-toggle" type="button" aria-label="Abrir menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+      </button>
+      <div>
+        <h1 class="titulo-pagina" id="titulo-pagina">Visão geral</h1>
+        <p class="subtitulo-pagina" id="subtitulo-pagina"></p>
+      </div>
+      <div class="espacador"></div>
+      <div class="acoes-topo" id="acoes-topo"></div>
+    </header>
+
+    <main class="pagina ativa" id="pagina">
+      <div class="faixa-filtros" id="chips"></div>
+      <div id="palco"></div>
+    </main>
+
+    <footer class="rodape-app" id="rodape"></footer>
+  </div>
+</div>
+
+<div class="avisos" id="avisos" aria-live="polite"></div>
+
+<!-- SDK do Firebase (build compat: funciona também abrindo o arquivo direto).
+     Se o CDN não responder, o painel cai na base local sem quebrar. -->
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
+
+<script src="assets/js/schema.js"></script>
+<script src="assets/js/dataset.js"></script>
+<script src="assets/js/stats.js"></script>
+<script src="assets/js/theme.js"></script>
+<script src="assets/js/charts.js"></script>
+<script src="assets/js/firebase-dados.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

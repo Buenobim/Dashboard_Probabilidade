@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// Regras da coleção "respostas".
+//
+// O painel é um trabalho acadêmico publicado: qualquer pessoa com o link
+// precisa conseguir LER os dados agregados. A escrita fica bloqueada pelo
+// console — a carga da base é feita pelo script scripts/seed-firestore.mjs,
+// que usa credencial de administrador e ignora estas regras.
+//
+// Se precisar publicar a base pelo botão do próprio painel, troque
+// `allow write: if false;` por `if request.time < timestamp.date(2026, 12, 31);`
+// enquanto durar a carga e volte a fechar depois.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /respostas/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
